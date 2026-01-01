@@ -2,112 +2,41 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard de Portfólio</title>
-
+<title>Portfólio Inteligente</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{
-  --primary:#1976d2;
-  --bg:#f4f6f8;
-  --card:#fff;
-  --success:#2e7d32;
-  --danger:#c62828;
-}
-
-body{
-  margin:0;
-  font-family:Inter,Arial;
-  background:var(--bg);
-}
-
-header{
-  background:var(--primary);
-  color:#fff;
-  padding:16px;
-  font-size:18px;
-}
-
-.container{
-  max-width:1100px;
-  margin:auto;
-  padding:16px;
-}
-
-.card{
-  background:var(--card);
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:16px;
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:12px;
-}
-
-input,select,button{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  font-size:14px;
-}
-
-button{
-  background:var(--primary);
-  color:#fff;
-  border:none;
-  font-weight:600;
-  cursor:pointer;
-}
-
-.badge{
-  padding:4px 8px;
-  border-radius:8px;
-  font-size:12px;
-}
-
-.success{background:#e8f5e9;color:var(--success)}
-.danger{background:#ffebee;color:var(--danger)}
-
-.alert{
-  background:#fff3cd;
-  border:1px solid #ffeeba;
-  border-radius:10px;
-  padding:12px;
-  margin-bottom:12px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th,td{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  text-align:center;
-  font-size:13px;
-}
+body{margin:0;font-family:Arial;background:#f4f6f8}
+header{background:#1976d2;color:#fff;padding:14px;font-size:18px}
+.container{max-width:1200px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+input,select,button{padding:10px;border-radius:10px;border:1px solid #ccc;font-size:14px;width:100%}
+button{background:#1976d2;color:#fff;border:none;font-weight:bold;cursor:pointer}
+.badge{padding:4px 8px;border-radius:8px;font-size:12px}
+.ok{background:#e8f5e9;color:#2e7d32}
+.bad{background:#ffebee;color:#c62828}
+.alert{background:#fff3cd;border:1px solid #ffeeba;border-radius:10px;padding:12px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-size:13px}
 </style>
 </head>
 
 <body>
 
-<header>📈 Meu Portfólio</header>
+<header>📊 Portfólio Financeiro</header>
 
 <div class="container">
 
 <!-- FORMULÁRIO -->
 <div class="card">
+  <h3>➕ Nova operação</h3>
   <div class="grid">
-    <input id="ativo" placeholder="Ativo (PETR4, AAPL)">
+    <input id="ativo" placeholder="Ativo">
     <select id="classe">
       <option>Ações</option>
       <option>FII</option>
+      <option>Renda Fixa</option>
       <option>Exterior</option>
     </select>
     <select id="tipo">
@@ -115,21 +44,22 @@ th,td{
       <option value="VENDA">Venda</option>
     </select>
     <input id="quantidade" type="number" placeholder="Quantidade">
+    <input id="preco" type="number" placeholder="Preço médio (opcional)">
     <select id="moeda">
       <option value="BRL">BRL</option>
       <option value="USD">USD</option>
     </select>
   </div>
-  <button onclick="salvar()" style="margin-top:12px">Salvar operação</button>
+  <button onclick="salvar()" style="margin-top:10px">Salvar</button>
 </div>
 
 <!-- TOTAL -->
 <div class="card">
-  <h3>💰 Patrimônio Total</h3>
-  <h2 id="total">R$ 0,00</h2>
+  <h2>💰 Patrimônio Total</h2>
+  <h1 id="total">R$ 0,00</h1>
 </div>
 
-<!-- CARDS POR CLASSE -->
+<!-- CARDS -->
 <div id="cards" class="grid"></div>
 
 <!-- GRÁFICO -->
@@ -137,8 +67,11 @@ th,td{
   <canvas id="grafico"></canvas>
 </div>
 
-<!-- ALERTAS DE BALANCEAMENTO -->
-<div id="alertas"></div>
+<!-- SUGESTÃO AUTOMÁTICA -->
+<div class="card">
+  <h3>🤖 Sugestão automática de compra</h3>
+  <div id="sugestoes"></div>
+</div>
 
 <!-- POSIÇÕES -->
 <div class="card">
@@ -150,7 +83,7 @@ th,td{
         <th>Classe</th>
         <th>Qtd</th>
         <th>Preço Médio</th>
-        <th>Valor</th>
+        <th>Valor Atual</th>
         <th>Resultado</th>
       </tr>
     </thead>
@@ -161,94 +94,76 @@ th,td{
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbz2twaT4ymbL_9FhmtESNCT7tmUjk80Ev9THjPRkUuLcd4B5cLAI6Ue_-NvSXa6PsA2AQ/exec";
+const API_URL="COLE_SUA_URL_AQUI";
 let chart;
 
 async function salvar(){
-  let qtd = Number(quantidade.value);
-  if(tipo.value==="VENDA") qtd*=-1;
+  let payload={
+    ativo:ativo.value.toUpperCase(),
+    classe:classe.value,
+    quantidade:tipo.value==="VENDA"?-Number(quantidade.value):Number(quantidade.value),
+    moeda:moeda.value
+  };
 
-  await fetch(API_URL,{
-    method:"POST",
-    body:JSON.stringify({
-      ativo:ativo.value.toUpperCase(),
-      classe:classe.value,
-      quantidade:qtd,
-      moeda:moeda.value
-    })
-  });
+  if(preco.value) payload.preco=Number(preco.value);
+
+  await fetch(API_URL,{method:"POST",body:JSON.stringify(payload)});
   carregar();
 }
 
 async function carregar(){
-  const r = await fetch(API_URL);
-  const data = await r.json();
-  render(data);
+  const r=await fetch(API_URL);
+  const d=await r.json();
+  render(d);
 }
 
-function render(data){
-  document.getElementById("total").innerText =
-    "R$ " + data.total.toFixed(2);
-
-  renderCards(data.classes);
-  renderGrafico(data.classes);
-  renderTabela(data.lista);
-  renderBalanceamento(data.rebalanceamento);
-}
-
-function renderCards(classes){
-  const c = document.getElementById("cards");
-  c.innerHTML="";
-  Object.entries(classes).forEach(([k,v])=>{
-    c.innerHTML+=`
-      <div class="card">
-        <h4>${k}</h4>
-        <strong>R$ ${v.toFixed(2)}</strong>
-      </div>`;
+function render(d){
+  total.innerText="R$ "+d.total.toFixed(2);
+  cards.innerHTML="";
+  Object.entries(d.classes).forEach(([k,v])=>{
+    cards.innerHTML+=`<div class="card"><h4>${k}</h4><strong>R$ ${v.toFixed(2)}</strong></div>`;
   });
+
+  renderGrafico(d.classes);
+  renderTabela(d.lista);
+  renderSugestoes(d.rebalanceamento);
 }
 
 function renderGrafico(classes){
-  const labels = Object.keys(classes);
-  const valores = Object.values(classes);
   if(chart) chart.destroy();
-  chart = new Chart(grafico,{
+  chart=new Chart(grafico,{
     type:"doughnut",
-    data:{labels,datasets:[{data:valores}]},
+    data:{labels:Object.keys(classes),datasets:[{data:Object.values(classes)}]},
     options:{plugins:{legend:{position:"bottom"}}}
   });
 }
 
 function renderTabela(lista){
-  const t = document.getElementById("tabela");
-  t.innerHTML="";
+  tabela.innerHTML="";
   lista.forEach(a=>{
-    t.innerHTML+=`
-      <tr>
-        <td>${a.ativo}</td>
-        <td>${a.classe}</td>
-        <td>${a.qtd}</td>
-        <td>${a.preco_medio.toFixed(2)}</td>
-        <td>${a.valor_atual.toFixed(2)}</td>
-        <td>
-          <span class="badge ${a.lucro>=0?"success":"danger"}">
-            ${a.lucro.toFixed(2)} (${a.lucro_pct.toFixed(1)}%)
-          </span>
-        </td>
-      </tr>`;
+    tabela.innerHTML+=`
+    <tr>
+      <td>${a.ativo}</td>
+      <td>${a.classe}</td>
+      <td>${a.qtd}</td>
+      <td>${a.preco_medio.toFixed(2)}</td>
+      <td>${a.valor_atual.toFixed(2)}</td>
+      <td><span class="badge ${a.lucro>=0?'ok':'bad'}">
+        ${a.lucro.toFixed(2)} (${a.lucro_pct.toFixed(1)}%)
+      </span></td>
+    </tr>`;
   });
 }
 
-function renderBalanceamento(reb){
-  const a = document.getElementById("alertas");
-  a.innerHTML="";
-  reb.forEach(r=>{
-    if(r.diferenca>0){
-      a.innerHTML+=`
-        <div class="alert">
-          👉 Aporte <strong>R$ ${r.diferenca.toFixed(2)}</strong> em
-          <strong>${r.classe}</strong> para balancear
-        </div>`;
+function renderSugestoes(r){
+  sugestoes.innerHTML="";
+  r.forEach(s=>{
+    if(s.diferenca>0){
+      sugestoes.innerHTML+=`
+      <div class="alert">
+        Comprar <strong>R$ ${s.diferenca.toFixed(2)}</strong>
+        em <strong>${s.classe}</strong>
+      </div>`;
     }
   });
 }
