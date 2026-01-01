@@ -2,218 +2,210 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Portfólio Financeiro</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Portfólio de Investimentos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { margin:0; font-family:Inter,Arial; background:#f3f4f6 }
-header { background:#0f172a; color:#fff; padding:18px; font-size:20px }
-.container { max-width:1200px; margin:auto; padding:20px }
-.card { background:#fff; border-radius:14px; padding:18px; margin-bottom:20px; box-shadow:0 6px 16px rgba(0,0,0,.08) }
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px }
-input,select,button { padding:10px; border-radius:8px; border:1px solid #ccc; width:100% }
-button { background:#2563eb; color:#fff; font-weight:600; cursor:pointer }
-table { width:100%; border-collapse:collapse }
-th,td { padding:10px; border-bottom:1px solid #e5e7eb; text-align:center }
-th { background:#f9fafb }
-.pos { color:#16a34a }
-.neg { color:#dc2626 }
-.badge { background:#e5e7eb; padding:5px 10px; border-radius:999px; font-size:13px }
-small { color:#6b7280 }
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#f4f6f9;
+  color:#333;
+}
+header {
+  background:#1e293b;
+  color:#fff;
+  padding:16px;
+  text-align:center;
+}
+.container {
+  padding:16px;
+  max-width:1200px;
+  margin:auto;
+}
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+}
+.card {
+  background:#fff;
+  padding:16px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,.08);
+}
+.card h3 {
+  margin:0 0 8px 0;
+  font-size:14px;
+  color:#555;
+}
+.card p {
+  font-size:22px;
+  font-weight:bold;
+}
+form {
+  background:#fff;
+  padding:16px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,.08);
+  margin-bottom:24px;
+}
+form input, form select, form button {
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+}
+form button {
+  background:#1e293b;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+  border-radius:10px;
+  overflow:hidden;
+}
+th, td {
+  padding:10px;
+  border-bottom:1px solid #eee;
+  text-align:right;
+}
+th {
+  background:#f1f5f9;
+  text-align:right;
+}
+th:first-child, td:first-child { text-align:left; }
+canvas { max-width:100%; }
 </style>
 </head>
 
 <body>
-<header>📊 Portfólio Financeiro</header>
+
+<header>
+<h1>📊 Portfólio de Investimentos</h1>
+</header>
+
 <div class="container">
 
-<!-- NOVA OPERAÇÃO -->
-<div class="card">
-<h3>➕ Nova Operação</h3>
-<small>
-• Use <b>Preço médio atual</b> apenas se você já possui o ativo<br>
-• Compras novas deixam o campo vazio<br>
-• Vendas não usam preço
-</small>
-<br><br>
-<div class="grid">
-<input id="ativo" placeholder="Ativo (TAEE4, AAPL)">
+<form id="formOperacao">
+<h3>Nova Operação</h3>
+<input required placeholder="Ativo" id="ativo">
 <select id="classe">
-<option>Ações</option>
-<option>Fundos Imobiliários</option>
-<option>Renda Fixa</option>
-<option>Internacional</option>
+  <option>Ações</option>
+  <option>Fundos Imobiliários</option>
+  <option>Renda Fixa</option>
+  <option>Internacional</option>
 </select>
 <select id="tipo">
-<option value="compra">Compra</option>
-<option value="venda">Venda</option>
+  <option value="COMPRA">Compra</option>
+  <option value="VENDA">Venda</option>
 </select>
-<input id="quantidade" type="number" placeholder="Quantidade">
-<input id="preco" type="number" placeholder="Preço médio atual (opcional)">
+<input type="number" step="0.0001" placeholder="Quantidade" id="quantidade">
+<input type="number" step="0.01" placeholder="Preço médio atual (opcional)" id="preco">
 <select id="moeda">
-<option>BRL</option>
-<option>USD</option>
+  <option>BRL</option>
+  <option>USD</option>
 </select>
-</div><br>
-<button onclick="salvar()">Salvar</button>
+<button type="submit">Salvar Operação</button>
+</form>
+
+<div class="cards">
+  <div class="card"><h3>Patrimônio Total</h3><p id="patrimonio">R$ 0,00</p></div>
+  <div class="card"><h3>Lucro / Prejuízo</h3><p id="lucro">R$ 0,00</p></div>
+  <div class="card"><h3>Dólar</h3><p id="usd">R$ 0,00</p></div>
 </div>
 
-<!-- RESUMO -->
-<div class="grid">
-<div class="card"><h4>💰 Patrimônio</h4><h2 id="patrimonio">R$ 0</h2></div>
-<div class="card"><h4>📈 Resultado</h4><h2 id="resultado">R$ 0</h2></div>
-<div class="card"><h4>💵 Dólar</h4><h2 id="dolar">R$ 0</h2></div>
-</div>
+<br>
 
-<!-- GRAFICO -->
-<div class="card">
 <canvas id="grafico"></canvas>
-</div>
 
-<!-- APORTE -->
-<div class="card">
-<h3>🎯 Sugestão de Aporte</h3>
-<div id="aporte"></div>
-</div>
+<br>
 
-<!-- POSICOES -->
-<div class="card">
-<h3>📋 Posições</h3>
-<table>
+<table id="tabela">
 <thead>
 <tr>
-<th>Ativo</th>
-<th>Classe</th>
-<th>Qtd</th>
-<th>Preço Médio</th>
-<th>Preço Atual</th>
-<th>Valor Atual</th>
-<th>Resultado</th>
+<th>Ativo</th><th>Classe</th><th>Qtd</th><th>PM</th><th>Preço Atual</th><th>Valor Atual</th><th>P/L</th>
 </tr>
 </thead>
-<tbody id="tabela"></tbody>
+<tbody></tbody>
 </table>
-</div>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const SHEET_ID = "1hx6xB1Z8knPkcl9pG29vhw5zlrge2rxf2AuuBXT_wG0";
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz8iTXCb1r3PVQRx4wjSsvJufh5SH4WLhU4hRC3UHoCsAWtV1ClBXrEfSMZ45yS8h9QRw/exec";
-const BASE = `https://opensheet.elk.sh/${SHEET_ID}/`;
+const SHEET_ID = "COLE_AQUI_O_ID_DA_PLANILHA";
+const WEBAPP_URL = "COLE_AQUI_A_URL_DO_WEBAPP";
 
-let cotacoes = {}, dolar = 1;
+const OPS_URL = `https://opensheet.elk.sh/${SHEET_ID}/OPERACOES`;
+const COT_URL = `https://opensheet.elk.sh/${SHEET_ID}/COTACOES`;
 
-async function carregar() {
-  const ops = await fetch(BASE+"OPERACOES").then(r=>r.json());
-  const cots = await fetch(BASE+"COTACOES").then(r=>r.json());
-
-  cots.forEach(c=>{
-    cotacoes[c.Ativo] = Number(c.Preco_Atual);
-    if(c.Ativo === "USD") dolar = Number(c.Preco_Atual);
-  });
-
-  document.getElementById("dolar").innerText = `R$ ${dolar.toFixed(2)}`;
-  processar(ops);
-}
-
-function processar(ops){
-  const ativos = {};
-  const porClasse = {};
-  let patrimonio = 0, resultado = 0;
-
-  ops.forEach(o=>{
-    const q = Number(o.Quantidade);
-    if(!ativos[o.Ativo]){
-      ativos[o.Ativo] = {
-        Ativo:o.Ativo,
-        Classe:o.Classe,
-        Moeda:o.Moeda,
-        qtd:0,
-        custo:0
-      };
-    }
-
-    if(q > 0 && o.Preço){
-      ativos[o.Ativo].custo += q * Number(o.Preço);
-    }
-
-    ativos[o.Ativo].qtd += q;
-  });
-
-  const tb = document.getElementById("tabela");
-  tb.innerHTML = "";
-
-  Object.values(ativos).forEach(a=>{
-    if(a.qtd <= 0) return;
-
-    const pm = a.custo / a.qtd;
-    const precoAtual = cotacoes[a.Ativo] || 0;
-
-    let valorAtual = precoAtual * a.qtd;
-    if(a.Moeda === "USD") valorAtual *= dolar;
-
-    const res = valorAtual - (pm * a.qtd);
-
-    patrimonio += valorAtual;
-    resultado += res;
-    porClasse[a.Classe] = (porClasse[a.Classe] || 0) + valorAtual;
-
-    tb.innerHTML += `
-      <tr>
-        <td>${a.Ativo}</td>
-        <td><span class="badge">${a.Classe}</span></td>
-        <td>${a.qtd}</td>
-        <td>${pm.toFixed(2)}</td>
-        <td>${precoAtual.toFixed(2)}</td>
-        <td>R$ ${valorAtual.toFixed(2)}</td>
-        <td class="${res>=0?'pos':'neg'}">R$ ${res.toFixed(2)}</td>
-      </tr>`;
-  });
-
-  document.getElementById("patrimonio").innerText = `R$ ${patrimonio.toFixed(2)}`;
-  document.getElementById("resultado").innerText = `R$ ${resultado.toFixed(2)}`;
-
-  new Chart(document.getElementById("grafico"),{
-    type:"doughnut",
-    data:{
-      labels:Object.keys(porClasse),
-      datasets:[{ data:Object.values(porClasse) }]
-    }
-  });
-
-  const alvo = patrimonio / Object.keys(porClasse).length;
-  let html = "";
-  Object.entries(porClasse).forEach(([c,v])=>{
-    if(v < alvo){
-      html += `📌 ${c}: aportar R$ ${(alvo - v).toFixed(2)}<br>`;
-    }
-  });
-
-  document.getElementById("aporte").innerHTML =
-    html || "✔ Portfólio balanceado";
-}
-
-async function salvar(){
-  let q = Number(quantidade.value);
-  if(tipo.value === "venda") q = -Math.abs(q);
+document.getElementById("formOperacao").onsubmit = async e => {
+  e.preventDefault();
+  const tipo = tipoSelect.value;
+  const qtd = parseFloat(quantidade.value) * (tipo === "VENDA" ? -1 : 1);
 
   await fetch(WEBAPP_URL,{
     method:"POST",
-    body: JSON.stringify({
-      ativo: ativo.value.toUpperCase(),
-      classe: classe.value,
-      quantidade: q,
-      preco: preco.value,
-      moeda: moeda.value
+    body:JSON.stringify({
+      data:new Date().toISOString().slice(0,10),
+      ativo:ativo.value,
+      classe:classe.value,
+      quantidade:qtd,
+      preco:preco.value || "",
+      moeda:moeda.value
     })
   });
+  alert("Operação salva!");
+};
 
-  alert("Operação salva com sucesso!");
-  carregar();
+async function carregar(){
+  const ops = await fetch(OPS_URL).then(r=>r.json());
+  const cot = await fetch(COT_URL).then(r=>r.json());
+
+  const usd = cot.find(c=>c.Ativo==="USD").Preco_Atual;
+  document.getElementById("usd").innerText = `R$ ${usd}`;
+
+  const mapa = {};
+  ops.forEach(o=>{
+    if(!mapa[o.Ativo]) mapa[o.Ativo]={...o,qtd:0,pm:0,total:0};
+    if(o.Preço){
+      mapa[o.Ativo].pm = parseFloat(o.Preço);
+    }
+    mapa[o.Ativo].qtd += parseFloat(o.Quantidade);
+  });
+
+  let patrimonio=0, lucro=0;
+  const tbody=document.querySelector("tbody");
+  tbody.innerHTML="";
+
+  Object.values(mapa).forEach(a=>{
+    const cotAtivo = cot.find(c=>c.Ativo===a.Ativo);
+    if(!cotAtivo) return;
+    let precoAtual = parseFloat(cotAtivo.Preco_Atual);
+    if(a.Moeda==="USD") precoAtual*=usd;
+    const valor = a.qtd * precoAtual;
+    const pl = valor - (a.qtd * a.pm);
+    patrimonio+=valor; lucro+=pl;
+
+    tbody.innerHTML+=`
+    <tr>
+      <td>${a.Ativo}</td><td>${a.Classe}</td><td>${a.qtd}</td>
+      <td>${a.pm.toFixed(2)}</td><td>${precoAtual.toFixed(2)}</td>
+      <td>${valor.toFixed(2)}</td><td>${pl.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  patrimonioEl.innerText=`R$ ${patrimonio.toFixed(2)}`;
+  lucroEl.innerText=`R$ ${lucro.toFixed(2)}`;
 }
 
 carregar();
 </script>
+
 </body>
 </html>
