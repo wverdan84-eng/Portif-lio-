@@ -1,40 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Portfólio Financeiro</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<title>Portfólio Financeiro</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Arial; padding:20px; background:#f2f2f2 }
+.card { background:#fff; padding:15px; margin-bottom:15px; border-radius:8px }
+input, select, button { width:100%; padding:8px; margin-top:6px }
+button { background:#1976d2; color:#fff; border:none; cursor:pointer }
+table { width:100%; border-collapse:collapse }
+th, td { padding:8px; border-bottom:1px solid #ddd; text-align:center }
+canvas { max-width:400px; margin:auto }
+</style>
 </head>
+
 <body>
 
 <h2>📈 Meu Portfólio</h2>
 
-<form id="form">
-  <input placeholder="Ativo" id="ativo" required>
-  <input placeholder="Classe (Ações, FII...)" id="classe" required>
-  <select id="tipo">
-    <option>Compra</option>
-    <option>Venda</option>
+<div class="card">
+  <input id="ativo" placeholder="Ativo (PETR4, AAPL)">
+  <input id="classe" placeholder="Classe (Ações, FII, ETF)">
+  <input id="quantidade" type="number" placeholder="Quantidade">
+  <input id="preco" type="number" placeholder="Preço médio">
+  <select id="moeda">
+    <option value="BRL">BRL</option>
+    <option value="USD">USD</option>
   </select>
-  <input type="number" placeholder="Quantidade" id="qtd" required>
-  <input type="number" placeholder="Preço" id="preco" step="0.01" required>
-  <button>Salvar</button>
-</form>
+  <button onclick="salvar()">Salvar</button>
+</div>
 
-<canvas id="grafico" width="400"></canvas>
+<div class="card">
+  <h3>💰 Total do Portfólio (R$): <span id="total">0.00</span></h3>
+</div>
+
+<div class="card">
+  <canvas id="grafico"></canvas>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Ativo</th>
+<th>Classe</th>
+<th>Qtd</th>
+<th>Cotação</th>
+<th>Valor (R$)</th>
+</tr>
+</thead>
+<tbody id="tabela"></tbody>
+</table>
+</div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbytF_Vs86eEnFZ1WTCWcYvNpmI8RlVddO2DNYcVBPRATyLYaRHfPu4MKjJfc8_U5dQnvg/exec";
+/* ================= CONFIGURAÇÃO ================= */
 
-document.getElementById("form").onsubmit = async (e) => {
-  e.preventDefault();
+const API_URL = "COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT";
 
+/* ================= FUNÇÕES ================= */
+
+async function salvar() {
   const data = {
-    ativo: ativo.value,
+    ativo: ativo.value.toUpperCase(),
     classe: classe.value,
-    tipo: tipo.value,
-    quantidade: Number(qtd.value),
-    preco: Number(preco.value)
+    quantidade: Number(quantidade.value),
+    preco_medio: Number(preco.value),
+    moeda: moeda.value
   };
 
   await fetch(API_URL, {
@@ -42,39 +77,54 @@ document.getElementById("form").onsubmit = async (e) => {
     body: JSON.stringify(data)
   });
 
-  carregarDados();
-};
+  carregar();
+}
 
-async function carregarDados() {
+async function carregar() {
   const res = await fetch(API_URL);
   const dados = await res.json();
-
-  const resumo = {};
-  dados.forEach(d => {
-    if (d.Tipo === "Compra") {
-      resumo[d.Classe] = (resumo[d.Classe] || 0) + d.Total;
-    }
-  });
-
-  desenharGrafico(resumo);
+  render(dados);
 }
 
 let chart;
+
+function render(dados) {
+  let total = 0;
+  let resumo = {};
+  const tbody = document.getElementById("tabela");
+  tbody.innerHTML = "";
+
+  dados.forEach(d => {
+    total += d.valor_total;
+    resumo[d.classe] = (resumo[d.classe] || 0) + d.valor_total;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.ativo}</td>
+        <td>${d.classe}</td>
+        <td>${d.quantidade}</td>
+        <td>${d.cotacao_atual.toFixed(2)}</td>
+        <td>${d.valor_total.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("total").innerText = total.toFixed(2);
+  desenharGrafico(resumo);
+}
+
 function desenharGrafico(dados) {
   if (chart) chart.destroy();
-
   chart = new Chart(document.getElementById("grafico"), {
-    type: 'pie',
+    type: "pie",
     data: {
       labels: Object.keys(dados),
-      datasets: [{
-        data: Object.values(dados)
-      }]
+      datasets: [{ data: Object.values(dados) }]
     }
   });
 }
 
-carregarDados();
+carregar();
 </script>
 
 </body>
