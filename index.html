@@ -2,124 +2,253 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Portfólio Financeiro</title>
+<title>Dashboard de Portfólio</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { font-family: Arial; padding:20px; background:#f2f2f2 }
-.card { background:#fff; padding:15px; margin-bottom:15px; border-radius:8px }
-input, select, button { width:100%; padding:8px; margin-top:6px }
-button { background:#1976d2; color:#fff; border:none; cursor:pointer }
-table { width:100%; border-collapse:collapse }
-th, td { padding:8px; border-bottom:1px solid #ddd; text-align:center }
-canvas { max-width:400px; margin:auto }
+:root{
+  --primary:#1976d2;
+  --bg:#f4f6f8;
+  --card:#fff;
+  --success:#2e7d32;
+  --danger:#c62828;
+}
+
+body{
+  margin:0;
+  font-family:Inter,Arial;
+  background:var(--bg);
+}
+
+header{
+  background:var(--primary);
+  color:#fff;
+  padding:16px;
+  font-size:18px;
+}
+
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:16px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+}
+
+input,select,button{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+
+button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.badge{
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+
+.success{background:#e8f5e9;color:var(--success)}
+.danger{background:#ffebee;color:var(--danger)}
+
+.alert{
+  background:#fff3cd;
+  border:1px solid #ffeeba;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  text-align:center;
+  font-size:13px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>📈 Meu Portfólio</h2>
+<header>📈 Meu Portfólio</header>
 
+<div class="container">
+
+<!-- FORMULÁRIO -->
 <div class="card">
-  <input id="ativo" placeholder="Ativo (PETR4, AAPL)">
-  <input id="classe" placeholder="Classe (Ações, FII, ETF)">
-  <input id="quantidade" type="number" placeholder="Quantidade">
-  <input id="preco" type="number" placeholder="Preço médio">
-  <select id="moeda">
-    <option value="BRL">BRL</option>
-    <option value="USD">USD</option>
-  </select>
-  <button onclick="salvar()">Salvar</button>
+  <div class="grid">
+    <input id="ativo" placeholder="Ativo (PETR4, AAPL)">
+    <select id="classe">
+      <option>Ações</option>
+      <option>FII</option>
+      <option>Exterior</option>
+    </select>
+    <select id="tipo">
+      <option value="COMPRA">Compra</option>
+      <option value="VENDA">Venda</option>
+    </select>
+    <input id="quantidade" type="number" placeholder="Quantidade">
+    <select id="moeda">
+      <option value="BRL">BRL</option>
+      <option value="USD">USD</option>
+    </select>
+  </div>
+  <button onclick="salvar()" style="margin-top:12px">Salvar operação</button>
 </div>
 
+<!-- TOTAL -->
 <div class="card">
-  <h3>💰 Total do Portfólio (R$): <span id="total">0.00</span></h3>
+  <h3>💰 Patrimônio Total</h3>
+  <h2 id="total">R$ 0,00</h2>
 </div>
 
+<!-- CARDS POR CLASSE -->
+<div id="cards" class="grid"></div>
+
+<!-- GRÁFICO -->
 <div class="card">
   <canvas id="grafico"></canvas>
 </div>
 
+<!-- ALERTAS DE BALANCEAMENTO -->
+<div id="alertas"></div>
+
+<!-- POSIÇÕES -->
 <div class="card">
-<table>
-<thead>
-<tr>
-<th>Ativo</th>
-<th>Classe</th>
-<th>Qtd</th>
-<th>Cotação</th>
-<th>Valor (R$)</th>
-</tr>
-</thead>
-<tbody id="tabela"></tbody>
-</table>
+  <h3>📌 Posições</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Ativo</th>
+        <th>Classe</th>
+        <th>Qtd</th>
+        <th>Preço Médio</th>
+        <th>Valor</th>
+        <th>Resultado</th>
+      </tr>
+    </thead>
+    <tbody id="tabela"></tbody>
+  </table>
+</div>
+
 </div>
 
 <script>
-/* ================= CONFIGURAÇÃO ================= */
+const API_URL = "COLE_AQUI_SUA_URL_DO_APPS_SCRIPT";
+let chart;
 
-const API_URL = "https://script.google.com/macros/s/AKfycbz_IWasmbjhPSIPyTLiVQhu_Z-2A_jIQk4po1uqTYMUwF6IIVGpfCAcai1G-FDSaWzfBw/exec";
+async function salvar(){
+  let qtd = Number(quantidade.value);
+  if(tipo.value==="VENDA") qtd*=-1;
 
-/* ================= FUNÇÕES ================= */
-
-async function salvar() {
-  const data = {
-    ativo: ativo.value.toUpperCase(),
-    classe: classe.value,
-    quantidade: Number(quantidade.value),
-    preco_medio: Number(preco.value),
-    moeda: moeda.value
-  };
-
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify(data)
+  await fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify({
+      ativo:ativo.value.toUpperCase(),
+      classe:classe.value,
+      quantidade:qtd,
+      moeda:moeda.value
+    })
   });
-
   carregar();
 }
 
-async function carregar() {
-  const res = await fetch(API_URL);
-  const dados = await res.json();
-  render(dados);
+async function carregar(){
+  const r = await fetch(API_URL);
+  const data = await r.json();
+  render(data);
 }
 
-let chart;
+function render(data){
+  document.getElementById("total").innerText =
+    "R$ " + data.total.toFixed(2);
 
-function render(dados) {
-  let total = 0;
-  let resumo = {};
-  const tbody = document.getElementById("tabela");
-  tbody.innerHTML = "";
+  renderCards(data.classes);
+  renderGrafico(data.classes);
+  renderTabela(data.lista);
+  renderBalanceamento(data.rebalanceamento);
+}
 
-  dados.forEach(d => {
-    total += d.valor_total;
-    resumo[d.classe] = (resumo[d.classe] || 0) + d.valor_total;
-
-    tbody.innerHTML += `
-      <tr>
-        <td>${d.ativo}</td>
-        <td>${d.classe}</td>
-        <td>${d.quantidade}</td>
-        <td>${d.cotacao_atual.toFixed(2)}</td>
-        <td>${d.valor_total.toFixed(2)}</td>
-      </tr>
-    `;
+function renderCards(classes){
+  const c = document.getElementById("cards");
+  c.innerHTML="";
+  Object.entries(classes).forEach(([k,v])=>{
+    c.innerHTML+=`
+      <div class="card">
+        <h4>${k}</h4>
+        <strong>R$ ${v.toFixed(2)}</strong>
+      </div>`;
   });
-
-  document.getElementById("total").innerText = total.toFixed(2);
-  desenharGrafico(resumo);
 }
 
-function desenharGrafico(dados) {
-  if (chart) chart.destroy();
-  chart = new Chart(document.getElementById("grafico"), {
-    type: "pie",
-    data: {
-      labels: Object.keys(dados),
-      datasets: [{ data: Object.values(dados) }]
+function renderGrafico(classes){
+  const labels = Object.keys(classes);
+  const valores = Object.values(classes);
+  if(chart) chart.destroy();
+  chart = new Chart(grafico,{
+    type:"doughnut",
+    data:{labels,datasets:[{data:valores}]},
+    options:{plugins:{legend:{position:"bottom"}}}
+  });
+}
+
+function renderTabela(lista){
+  const t = document.getElementById("tabela");
+  t.innerHTML="";
+  lista.forEach(a=>{
+    t.innerHTML+=`
+      <tr>
+        <td>${a.ativo}</td>
+        <td>${a.classe}</td>
+        <td>${a.qtd}</td>
+        <td>${a.preco_medio.toFixed(2)}</td>
+        <td>${a.valor_atual.toFixed(2)}</td>
+        <td>
+          <span class="badge ${a.lucro>=0?"success":"danger"}">
+            ${a.lucro.toFixed(2)} (${a.lucro_pct.toFixed(1)}%)
+          </span>
+        </td>
+      </tr>`;
+  });
+}
+
+function renderBalanceamento(reb){
+  const a = document.getElementById("alertas");
+  a.innerHTML="";
+  reb.forEach(r=>{
+    if(r.diferenca>0){
+      a.innerHTML+=`
+        <div class="alert">
+          👉 Aporte <strong>R$ ${r.diferenca.toFixed(2)}</strong> em
+          <strong>${r.classe}</strong> para balancear
+        </div>`;
     }
   });
 }
