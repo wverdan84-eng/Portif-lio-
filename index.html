@@ -2,23 +2,27 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Portfólio Inteligente</title>
+<title>Portfólio Financeiro</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#f4f6f8}
-header{background:#1976d2;color:#fff;padding:14px;font-size:18px}
+body{margin:0;font-family:Inter,Arial;background:#f4f6f8}
+header{background:#1e88e5;color:#fff;padding:16px;font-size:20px}
 .container{max-width:1200px;margin:auto;padding:16px}
-.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-input,select,button{padding:10px;border-radius:10px;border:1px solid #ccc;font-size:14px;width:100%}
-button{background:#1976d2;color:#fff;border:none;font-weight:bold;cursor:pointer}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;
+box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+input,select,button{
+padding:10px;border-radius:10px;border:1px solid #ccc;font-size:14px;width:100%
+}
+button{background:#1e88e5;color:#fff;border:none;font-weight:600;cursor:pointer}
 .badge{padding:4px 8px;border-radius:8px;font-size:12px}
 .ok{background:#e8f5e9;color:#2e7d32}
 .bad{background:#ffebee;color:#c62828}
-.alert{background:#fff3cd;border:1px solid #ffeeba;border-radius:10px;padding:12px;margin-bottom:10px}
+.alert{background:#fff3cd;border-radius:10px;padding:10px;margin-bottom:8px}
 table{width:100%;border-collapse:collapse}
 th,td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-size:13px}
+h1,h2,h3{margin:6px 0}
 </style>
 </head>
 
@@ -28,117 +32,121 @@ th,td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-size:13px}
 
 <div class="container">
 
-<!-- FORMULÁRIO -->
+<!-- FORM -->
 <div class="card">
-  <h3>➕ Nova operação</h3>
-  <div class="grid">
-    <input id="ativo" placeholder="Ativo">
-    <select id="classe">
-      <option>Ações</option>
-      <option>FII</option>
-      <option>Renda Fixa</option>
-      <option>Exterior</option>
-    </select>
-    <select id="tipo">
-      <option value="COMPRA">Compra</option>
-      <option value="VENDA">Venda</option>
-    </select>
-    <input id="quantidade" type="number" placeholder="Quantidade">
-    <input id="preco" type="number" placeholder="Preço médio (opcional)">
-    <select id="moeda">
-      <option value="BRL">BRL</option>
-      <option value="USD">USD</option>
-    </select>
-  </div>
-  <button onclick="salvar()" style="margin-top:10px">Salvar</button>
+<h3>➕ Nova operação</h3>
+<div class="grid">
+<input id="ativo" placeholder="Ativo (PETR4, AAPL)">
+<select id="classe">
+<option>Ações</option>
+<option>FII</option>
+<option>Renda Fixa</option>
+<option>Exterior</option>
+</select>
+<select id="tipo">
+<option value="COMPRA">Compra</option>
+<option value="VENDA">Venda</option>
+</select>
+<input id="quantidade" type="number" placeholder="Quantidade">
+<input id="preco" type="number" placeholder="Preço médio (opcional)">
+<select id="moeda">
+<option value="BRL">BRL</option>
+<option value="USD">USD</option>
+</select>
+</div>
+<button onclick="salvar()" style="margin-top:10px">Salvar</button>
 </div>
 
 <!-- TOTAL -->
 <div class="card">
-  <h2>💰 Patrimônio Total</h2>
-  <h1 id="total">R$ 0,00</h1>
+<h2>💰 Patrimônio Total</h2>
+<h1 id="total">R$ 0,00</h1>
 </div>
 
-<!-- CARDS -->
+<!-- CLASSES -->
 <div id="cards" class="grid"></div>
 
-<!-- GRÁFICO -->
+<!-- GRAFICO -->
 <div class="card">
-  <canvas id="grafico"></canvas>
+<canvas id="grafico"></canvas>
 </div>
 
-<!-- SUGESTÃO AUTOMÁTICA -->
+<!-- SUGESTAO -->
 <div class="card">
-  <h3>🤖 Sugestão automática de compra</h3>
-  <div id="sugestoes"></div>
+<h3>🤖 Sugestão de aporte</h3>
+<div id="sugestoes"></div>
 </div>
 
-<!-- POSIÇÕES -->
+<!-- TABELA -->
 <div class="card">
-  <h3>📌 Posições</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Ativo</th>
-        <th>Classe</th>
-        <th>Qtd</th>
-        <th>Preço Médio</th>
-        <th>Valor Atual</th>
-        <th>Resultado</th>
-      </tr>
-    </thead>
-    <tbody id="tabela"></tbody>
-  </table>
+<h3>📌 Posições</h3>
+<table>
+<thead>
+<tr>
+<th>Ativo</th>
+<th>Classe</th>
+<th>Qtd</th>
+<th>Preço Médio</th>
+<th>Valor Atual</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody id="tabela"></tbody>
+</table>
 </div>
 
 </div>
 
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbztFYH0WZF3YK8QZZ5qC2sMh7nwBqOmIdbG7gh2HeofgqJIIqTrBWxjKhBXCVWtp8szbA/exec";
+const API_URL = "COLE_SUA_URL_DO_WEB_APP_AQUI";
 let chart;
 
 async function salvar(){
   let payload={
-    ativo:ativo.value.toUpperCase(),
-    classe:classe.value,
-    quantidade:tipo.value==="VENDA"?-Number(quantidade.value):Number(quantidade.value),
-    moeda:moeda.value
+    ativo: ativo.value.toUpperCase(),
+    classe: classe.value,
+    quantidade: tipo.value==="VENDA" ? -Number(quantidade.value) : Number(quantidade.value),
+    moeda: moeda.value
   };
-
-  if(preco.value) payload.preco=Number(preco.value);
-
+  if(preco.value) payload.preco = Number(preco.value);
   await fetch(API_URL,{method:"POST",body:JSON.stringify(payload)});
   carregar();
 }
 
 async function carregar(){
-  const r=await fetch(API_URL);
-  const d=await r.json();
+  const r = await fetch(API_URL);
+  const d = await r.json();
   render(d);
 }
 
 function render(d){
-  total.innerText="R$ "+d.total.toFixed(2);
+  total.innerText = "R$ " + d.total.toFixed(2);
   cards.innerHTML="";
-  Object.entries(d.classes).forEach(([k,v])=>{
-    cards.innerHTML+=`<div class="card"><h4>${k}</h4><strong>R$ ${v.toFixed(2)}</strong></div>`;
+  Object.entries(d.classes).forEach(([c,v])=>{
+    cards.innerHTML+=`
+      <div class="card">
+        <h3>${c}</h3>
+        <h2>R$ ${v.toFixed(2)}</h2>
+      </div>`;
   });
-
-  renderGrafico(d.classes);
-  renderTabela(d.lista);
-  renderSugestoes(d.rebalanceamento);
+  graficoClasses(d.classes);
+  tabelaAtivos(d.lista);
+  sugestao(d.rebalanceamento);
 }
 
-function renderGrafico(classes){
+function graficoClasses(classes){
   if(chart) chart.destroy();
   chart=new Chart(grafico,{
     type:"doughnut",
-    data:{labels:Object.keys(classes),datasets:[{data:Object.values(classes)}]},
+    data:{
+      labels:Object.keys(classes),
+      datasets:[{data:Object.values(classes)}]
+    },
     options:{plugins:{legend:{position:"bottom"}}}
   });
 }
 
-function renderTabela(lista){
+function tabelaAtivos(lista){
   tabela.innerHTML="";
   lista.forEach(a=>{
     tabela.innerHTML+=`
@@ -146,23 +154,24 @@ function renderTabela(lista){
       <td>${a.ativo}</td>
       <td>${a.classe}</td>
       <td>${a.qtd}</td>
-      <td>${a.preco_medio.toFixed(2)}</td>
-      <td>${a.valor_atual.toFixed(2)}</td>
-      <td><span class="badge ${a.lucro>=0?'ok':'bad'}">
-        ${a.lucro.toFixed(2)} (${a.lucro_pct.toFixed(1)}%)
-      </span></td>
+      <td>R$ ${a.preco_medio.toFixed(2)}</td>
+      <td><strong>R$ ${a.valor_atual.toFixed(2)}</strong></td>
+      <td>
+        <span class="badge ${a.lucro>=0?'ok':'bad'}">
+        R$ ${a.lucro.toFixed(2)} (${a.lucro_pct.toFixed(1)}%)
+        </span>
+      </td>
     </tr>`;
   });
 }
 
-function renderSugestoes(r){
+function sugestao(r){
   sugestoes.innerHTML="";
   r.forEach(s=>{
     if(s.diferenca>0){
       sugestoes.innerHTML+=`
       <div class="alert">
-        Comprar <strong>R$ ${s.diferenca.toFixed(2)}</strong>
-        em <strong>${s.classe}</strong>
+        Aportar <strong>R$ ${s.diferenca.toFixed(2)}</strong> em <strong>${s.classe}</strong>
       </div>`;
     }
   });
