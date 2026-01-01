@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Portfólio Financeiro</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>📈 Meu Portfólio</h2>
+
+<form id="form">
+  <input placeholder="Ativo" id="ativo" required>
+  <input placeholder="Classe (Ações, FII...)" id="classe" required>
+  <select id="tipo">
+    <option>Compra</option>
+    <option>Venda</option>
+  </select>
+  <input type="number" placeholder="Quantidade" id="qtd" required>
+  <input type="number" placeholder="Preço" id="preco" step="0.01" required>
+  <button>Salvar</button>
+</form>
+
+<canvas id="grafico" width="400"></canvas>
+
+<script>
+const API_URL = "COLE_AQUI_SUA_URL_DO_APPS_SCRIPT";
+
+document.getElementById("form").onsubmit = async (e) => {
+  e.preventDefault();
+
+  const data = {
+    ativo: ativo.value,
+    classe: classe.value,
+    tipo: tipo.value,
+    quantidade: Number(qtd.value),
+    preco: Number(preco.value)
+  };
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+
+  carregarDados();
+};
+
+async function carregarDados() {
+  const res = await fetch(API_URL);
+  const dados = await res.json();
+
+  const resumo = {};
+  dados.forEach(d => {
+    if (d.Tipo === "Compra") {
+      resumo[d.Classe] = (resumo[d.Classe] || 0) + d.Total;
+    }
+  });
+
+  desenharGrafico(resumo);
+}
+
+let chart;
+function desenharGrafico(dados) {
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("grafico"), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(dados),
+      datasets: [{
+        data: Object.values(dados)
+      }]
+    }
+  });
+}
+
+carregarDados();
+</script>
+
+</body>
+</html>
