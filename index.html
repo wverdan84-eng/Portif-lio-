@@ -6,11 +6,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { margin:0; font-family:Inter,Arial; background:#f4f6fa }
-header { background:#111827; color:#fff; padding:18px; font-size:20px }
-.container { padding:20px; max-width:1200px; margin:auto }
-.card { background:#fff; border-radius:14px; padding:18px; margin-bottom:20px; box-shadow:0 6px 18px rgba(0,0,0,.08) }
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:15px }
+body { margin:0; font-family:Inter,Arial; background:#f3f4f6 }
+header { background:#0f172a; color:#fff; padding:18px; font-size:20px }
+.container { max-width:1200px; margin:auto; padding:20px }
+.card { background:#fff; border-radius:14px; padding:18px; margin-bottom:20px; box-shadow:0 6px 16px rgba(0,0,0,.08) }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px }
 input,select,button { padding:10px; border-radius:8px; border:1px solid #ccc; width:100% }
 button { background:#2563eb; color:#fff; font-weight:600; cursor:pointer }
 table { width:100%; border-collapse:collapse }
@@ -18,18 +18,24 @@ th,td { padding:10px; border-bottom:1px solid #e5e7eb; text-align:center }
 th { background:#f9fafb }
 .pos { color:#16a34a }
 .neg { color:#dc2626 }
-.badge { padding:6px 10px; border-radius:999px; background:#e5e7eb; font-size:13px }
+.badge { background:#e5e7eb; padding:5px 10px; border-radius:999px; font-size:13px }
+small { color:#6b7280 }
 </style>
 </head>
 
 <body>
 <header>📊 Portfólio Financeiro</header>
-
 <div class="container">
 
 <!-- NOVA OPERAÇÃO -->
 <div class="card">
 <h3>➕ Nova Operação</h3>
+<small>
+• Use <b>Preço médio atual</b> apenas se você já possui o ativo<br>
+• Compras novas deixam o campo vazio<br>
+• Vendas não usam preço
+</small>
+<br><br>
 <div class="grid">
 <input id="ativo" placeholder="Ativo (TAEE4, AAPL)">
 <select id="classe">
@@ -43,13 +49,12 @@ th { background:#f9fafb }
 <option value="venda">Venda</option>
 </select>
 <input id="quantidade" type="number" placeholder="Quantidade">
-<input id="preco" type="number" placeholder="Preço (só 1ª compra)">
+<input id="preco" type="number" placeholder="Preço médio atual (opcional)">
 <select id="moeda">
 <option>BRL</option>
 <option>USD</option>
 </select>
-</div>
-<br>
+</div><br>
 <button onclick="salvar()">Salvar</button>
 </div>
 
@@ -60,7 +65,7 @@ th { background:#f9fafb }
 <div class="card"><h4>💵 Dólar</h4><h2 id="dolar">R$ 0</h2></div>
 </div>
 
-<!-- DASHBOARD -->
+<!-- GRAFICO -->
 <div class="card">
 <canvas id="grafico"></canvas>
 </div>
@@ -71,7 +76,7 @@ th { background:#f9fafb }
 <div id="aporte"></div>
 </div>
 
-<!-- POSIÇÕES -->
+<!-- POSICOES -->
 <div class="card">
 <h3>📋 Posições</h3>
 <table>
@@ -94,13 +99,13 @@ th { background:#f9fafb }
 
 <script>
 const SHEET_ID = "SUA_PLANILHA_ID";
+const WEBAPP_URL = "SUA_URL_WEBAPP";
 const BASE = `https://opensheet.elk.sh/${SHEET_ID}/`;
 
-let cotacoes = {};
-let dolar = 1;
+let cotacoes = {}, dolar = 1;
 
 async function carregar() {
-  const operacoes = await fetch(BASE+"OPERACOES").then(r=>r.json());
+  const ops = await fetch(BASE+"OPERACOES").then(r=>r.json());
   const cots = await fetch(BASE+"COTACOES").then(r=>r.json());
 
   cots.forEach(c=>{
@@ -109,90 +114,106 @@ async function carregar() {
   });
 
   document.getElementById("dolar").innerText = `R$ ${dolar.toFixed(2)}`;
-
-  processar(operacoes);
+  processar(ops);
 }
 
-function processar(ops) {
+function processar(ops){
   const ativos = {};
+  const porClasse = {};
+  let patrimonio = 0, resultado = 0;
+
   ops.forEach(o=>{
-    const qtd = Number(o.Quantidade);
-    if(!ativos[o.Ativo]) {
+    const q = Number(o.Quantidade);
+    if(!ativos[o.Ativo]){
       ativos[o.Ativo] = {
-        ativo:o.Ativo, classe:o.Classe, moeda:o.Moeda,
-        qtd:0, custo:0
+        Ativo:o.Ativo,
+        Classe:o.Classe,
+        Moeda:o.Moeda,
+        qtd:0,
+        custo:0
       };
     }
-    if(qtd > 0) ativos[o.Ativo].custo += qtd * (Number(o.Preço)||0);
-    ativos[o.Ativo].qtd += qtd;
+
+    if(q > 0 && o.Preço){
+      ativos[o.Ativo].custo += q * Number(o.Preço);
+    }
+
+    ativos[o.Ativo].qtd += q;
   });
 
-  let patrimonio = 0, resultado = 0;
-  let porClasse = {};
-  const tbody = document.getElementById("tabela");
-  tbody.innerHTML = "";
+  const tb = document.getElementById("tabela");
+  tb.innerHTML = "";
 
   Object.values(ativos).forEach(a=>{
     if(a.qtd <= 0) return;
-    const pm = a.custo / a.qtd;
-    const precoAtual = cotacoes[a.ativo] || 0;
-    let valorAtual = precoAtual * a.qtd;
-    if(a.moeda === "USD") valorAtual *= dolar;
 
-    const custoTotal = pm * a.qtd;
-    const res = valorAtual - custoTotal;
+    const pm = a.custo / a.qtd;
+    const precoAtual = cotacoes[a.Ativo] || 0;
+
+    let valorAtual = precoAtual * a.qtd;
+    if(a.Moeda === "USD") valorAtual *= dolar;
+
+    const res = valorAtual - (pm * a.qtd);
 
     patrimonio += valorAtual;
     resultado += res;
-    porClasse[a.classe] = (porClasse[a.classe]||0) + valorAtual;
+    porClasse[a.Classe] = (porClasse[a.Classe] || 0) + valorAtual;
 
-    tbody.innerHTML += `
+    tb.innerHTML += `
       <tr>
-        <td>${a.ativo}</td>
-        <td><span class="badge">${a.classe}</span></td>
+        <td>${a.Ativo}</td>
+        <td><span class="badge">${a.Classe}</span></td>
         <td>${a.qtd}</td>
         <td>${pm.toFixed(2)}</td>
         <td>${precoAtual.toFixed(2)}</td>
         <td>R$ ${valorAtual.toFixed(2)}</td>
         <td class="${res>=0?'pos':'neg'}">R$ ${res.toFixed(2)}</td>
-      </tr>
-    `;
+      </tr>`;
   });
 
   document.getElementById("patrimonio").innerText = `R$ ${patrimonio.toFixed(2)}`;
   document.getElementById("resultado").innerText = `R$ ${resultado.toFixed(2)}`;
 
-  grafico(porClasse);
-  sugestao(porClasse, patrimonio);
-}
-
-function grafico(dados) {
-  const ctx = document.getElementById("grafico");
-  new Chart(ctx,{
-    type:'doughnut',
-    data:{ labels:Object.keys(dados),
-      datasets:[{ data:Object.values(dados) }]
+  new Chart(document.getElementById("grafico"),{
+    type:"doughnut",
+    data:{
+      labels:Object.keys(porClasse),
+      datasets:[{ data:Object.values(porClasse) }]
     }
   });
-}
 
-function sugestao(dados,total){
-  const alvo = total / Object.keys(dados).length;
-  let html="";
-  Object.entries(dados).forEach(([c,v])=>{
+  const alvo = patrimonio / Object.keys(porClasse).length;
+  let html = "";
+  Object.entries(porClasse).forEach(([c,v])=>{
     if(v < alvo){
-      html += `📌 ${c}: aportar R$ ${(alvo-v).toFixed(2)}<br>`;
+      html += `📌 ${c}: aportar R$ ${(alvo - v).toFixed(2)}<br>`;
     }
   });
-  document.getElementById("aporte").innerHTML = html || "✔ Portfólio balanceado";
+
+  document.getElementById("aporte").innerHTML =
+    html || "✔ Portfólio balanceado";
 }
 
 async function salvar(){
-  alert("Para salvar direto na planilha use Google Apps Script WebApp (próximo passo).");
+  let q = Number(quantidade.value);
+  if(tipo.value === "venda") q = -Math.abs(q);
+
+  await fetch(WEBAPP_URL,{
+    method:"POST",
+    body: JSON.stringify({
+      ativo: ativo.value.toUpperCase(),
+      classe: classe.value,
+      quantidade: q,
+      preco: preco.value,
+      moeda: moeda.value
+    })
+  });
+
+  alert("Operação salva com sucesso!");
+  carregar();
 }
 
 carregar();
 </script>
-
 </body>
 </html>
