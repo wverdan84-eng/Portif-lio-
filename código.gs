@@ -290,3 +290,276 @@ function criarTabelaTopAtivos(sheet, lancSheet, linha, coluna) {
     sheet.getRange(linha + 2 + i, coluna, 1, 4).setBackground(bgColor);
   }
 }
+function criarTabelaUltimosLancamentos(sheet, lancSheet, linha, coluna) {
+  sheet.getRange(linha, coluna).setValue("ÚLTIMOS LANÇAMENTOS")
+    .setFontSize(14)
+    .setFontWeight("bold")
+    .setFontColor("#1c4587");
+  
+  const ultimosRange = lancSheet.getRange("A1:M6");
+  const destRange = sheet.getRange(linha + 1, coluna, 6, 13);
+  ultimosRange.copyTo(destRange);
+  destRange.setBorder(true, true, true, true, true, true);
+  sheet.getRange(linha + 1, coluna, 1, 13).setBackground("#1c4587");
+}
+
+function criarLegenda(sheet, linha, coluna) {
+  sheet.getRange(linha, coluna).setValue("LEGENDA E INFORMAÇÕES")
+    .setFontSize(12)
+    .setFontWeight("bold")
+    .setFontColor("#1c4587");
+  
+  const legendas = [
+    ["📈 DASHBOARD", "Visão geral e indicadores principais"],
+    ["💰 LANÇAMENTOS", "Registro de todas as operações"],
+    ["🎯 METAS", "Definição e acompanhamento de objetivos"],
+    ["📊 ANÁLISE", "Relatórios detalhados e análises"],
+    ["💼 CARTEIRA", "Composição detalhada dos ativos"],
+    ["📈 DIVIDENDOS", "Controle de proventos recebidos"],
+    ["🚨 ALERTAS", "Notificações e alertas importantes"],
+    ["⚙️ CONFIG", "Configurações do sistema"]
+  ];
+  
+  for (let i = 0; i < legendas.length; i++) {
+    sheet.getRange(linha + 1 + i, coluna).setValue(legendas[i][0]);
+    sheet.getRange(linha + 1 + i, coluna + 1).setValue(legendas[i][1]);
+  }
+  
+  const range = sheet.getRange(linha + 1, coluna, legendas.length, 2);
+  range.setBorder(true, true, true, true, true, true).setBackground("#FFFFFF");
+}
+
+function configurarMetas(sheet) {
+  sheet.clear();
+  sheet.getRange("A1").setValue("PLANEJAMENTO DE METAS FINANCEIRAS")
+    .setFontSize(18)
+    .setFontWeight("bold")
+    .setFontColor("#674ea7");
+  sheet.getRange("A1:G1").merge();
+  
+  const headers = [
+    ["META", "CATEGORIA", "VALOR ALVO", "VALOR ATUAL", 
+     "PRAZO", "% CONCLUÍDO", "STATUS", "PRIORIDADE"]
+  ];
+  
+  sheet.getRange("A3:H3").setValues(headers)
+    .setBackground("#674ea7")
+    .setFontColor("#FFFFFF")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
+  
+  const dadosMetas = [
+    ["Reserva de Emergência", "SEGURANÇA", 25000, 18000, new Date(2024, 5, 30), "=D4/C4", "=IF(F4>=1,\"✅ ATINGIDA\",IF(F4>=0.7,\"⚠️ EM ANDAMENTO\",\"⏳ PENDENTE\"))", "ALTA"],
+    ["Viagem Internacional", "LAZER", 15000, 8000, new Date(2024, 10, 15), "=D5/C5", "=IF(F5>=1,\"✅ ATINGIDA\",IF(F5>=0.7,\"⚠️ EM ANDAMENTO\",\"⏳ PENDENTE\"))", "MÉDIA"],
+    ["Entrada Apartamento", "IMOBILIÁRIO", 80000, 35000, new Date(2025, 11, 31), "=D6/C6", "=IF(F6>=1,\"✅ ATINGIDA\",IF(F6>=0.7,\"⚠️ EM ANDAMENTO\",\"⏳ PENDENTE\"))", "ALTA"]
+  ];
+  
+  sheet.getRange("A4:H6").setValues(dadosMetas);
+  sheet.getRange("C4:D6").setNumberFormat("R$ #,##0.00");
+  sheet.getRange("E4:E6").setNumberFormat("dd/mm/yyyy");
+  sheet.getRange("F4:F6").setNumberFormat("0.00%");
+  
+  const prioridadeValidation = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["ALTA", "MÉDIA", "BAIXA"])
+    .build();
+  sheet.getRange("H4:H100").setDataValidation(prioridadeValidation);
+  sheet.setColumnWidths(1, 8, [200, 120, 120, 120, 100, 100, 120, 100]);
+  sheet.setFrozenRows(3);
+}
+
+function configurarAnalise(sheet, lancSheet) {
+  sheet.clear();
+  sheet.getRange("A1").setValue("ANÁLISE DETALHADA DA CARTEIRA")
+    .setFontSize(18)
+    .setFontWeight("bold")
+    .setFontColor("#45818e");
+  sheet.getRange("A1:E1").merge();
+  
+  sheet.getRange("A3").setValue("INVESTIMENTOS POR TIPO").setFontSize(14).setFontWeight("bold");
+  sheet.getRange("A5").setFormula(
+    '=QUERY(\'💰 LANÇAMENTOS\'!D:M, ' +
+    '"SELECT D, SUM(I) WHERE I IS NOT NULL GROUP BY D ORDER BY SUM(I) DESC LABEL D \'Tipo\', SUM(I) \'Total Investido\'", 1)'
+  );
+  
+  sheet.getRange("D3").setValue("INVESTIMENTOS POR CATEGORIA").setFontSize(14).setFontWeight("bold");
+  sheet.getRange("D5").setFormula(
+    '=QUERY(\'💰 LANÇAMENTOS\'!J:M, ' +
+    '"SELECT J, SUM(I) WHERE I IS NOT NULL GROUP BY J ORDER BY SUM(I) DESC LABEL J \'Categoria\', SUM(I) \'Total Investido\'", 1)'
+  );
+  
+  sheet.getRange("A5:B5").setBackground("#45818e").setFontColor("#FFFFFF");
+  sheet.getRange("D5:E5").setBackground("#45818e").setFontColor("#FFFFFF");
+  sheet.getRange("B6:B100").setNumberFormat("R$ #,##0.00");
+  sheet.getRange("E6:E100").setNumberFormat("R$ #,##0.00");
+  sheet.setColumnWidths(1, 5, [150, 150, 50, 150, 150]);
+}
+
+function configurarCarteira(sheet, lancSheet) {
+  sheet.clear();
+  sheet.getRange("A1").setValue("CARTEIRA DETALHADA")
+    .setFontSize(18)
+    .setFontWeight("bold")
+    .setFontColor("#3c78d8");
+  sheet.getRange("A1:H1").merge();
+  
+  const headers = [
+    ["TICKER", "ATIVO", "QUANTIDADE", "PREÇO MÉDIO", 
+     "VALOR INVESTIDO", "VALOR ATUAL", "VARIAÇÃO %", "LUCRO/PREJUÍZO"]
+  ];
+  
+  sheet.getRange("A3:H3").setValues(headers)
+    .setBackground("#3c78d8")
+    .setFontColor("#FFFFFF")
+    .setFontWeight("bold");
+  
+  sheet.getRange("A4").setFormula('=UNIQUE(FILTER(\'💰 LANÇAMENTOS\'!B:B, \'💰 LANÇAMENTOS\'!B:B<>""))');
+  sheet.getRange("B4").setFormula('=ARRAYFORMULA(IFERROR(VLOOKUP(A4:A, \'💰 LANÇAMENTOS\'!B:C, 2, FALSE), ""))');
+  sheet.getRange("C4").setFormula('=ARRAYFORMULA(IF(A4:A="", "", SUMIF(\'💰 LANÇAMENTOS\'!B:B, A4:A, \'💰 LANÇAMENTOS\'!E:E)))');
+  sheet.getRange("D4").setFormula('=ARRAYFORMULA(IF(A4:A="", "", E4:E/C4:C))');
+  sheet.getRange("E4").setFormula('=ARRAYFORMULA(IF(A4:A="", "", SUMIF(\'💰 LANÇAMENTOS\'!B:B, A4:A, \'💰 LANÇAMENTOS\'!I:I)))');
+  sheet.getRange("F4").setFormula('=ARRAYFORMULA(IF(A4:A="", "", E4:E*1.12))');
+  sheet.getRange("G4").setFormula('=ARRAYFORMULA(IF(A4:A="", "", (F4:F-E4:E)/E4:E))');
+  sheet.getRange("H4").setFormula('=ARRAYFORMULA(IF(A4:A="", "", F4:F-E4:E))');
+  
+  sheet.getRange("D4:H100").setNumberFormat("#,##0.00");
+  sheet.getRange("G4:G100").setNumberFormat("0.00%");
+}
+
+function configurarDividendos(sheet) {
+  sheet.clear();
+  sheet.getRange("A1").setValue("CONTROLE DE PROVENTOS E DIVIDENDOS")
+    .setFontSize(18)
+    .setFontWeight("bold")
+    .setFontColor("#6aa84f");
+  sheet.getRange("A1:G1").merge();
+  
+  const headers = [
+    ["DATA", "TICKER", "TIPO", "VALOR POR COTA", 
+     "QUANTIDADE", "VALOR TOTAL", "MÊS/ANO"]
+  ];
+  
+  sheet.getRange("A3:G3").setValues(headers)
+    .setBackground("#6aa84f")
+    .setFontColor("#FFFFFF")
+    .setFontWeight("bold");
+  
+  const dadosDividendos = [
+    [new Date(2024, 0, 15), "PETR4", "DIVIDENDO", 0.85, 100, "=D4*E4", "JAN/24"],
+    [new Date(2024, 0, 20), "ITUB4", "JCP", 0.45, 50, "=D5*E5", "JAN/24"],
+    [new Date(2024, 1, 10), "MXRF11", "DIVIDENDO", 0.78, 30, "=D6*E6", "FEV/24"]
+  ];
+  
+  sheet.getRange("A4:G6").setValues(dadosDividendos);
+  sheet.getRange("A4:A100").setNumberFormat("dd/mm/yyyy");
+  sheet.getRange("D4:G100").setNumberFormat("R$ #,##0.00");
+  
+  sheet.getRange("I3").setValue("RESUMO ANUAL").setFontSize(14).setFontWeight("bold");
+  sheet.getRange("I4").setValue("Total Recebido:");
+  sheet.getRange("J4").setFormula("=SUM(F:F)").setNumberFormat("R$ #,##0.00").setFontWeight("bold");
+}
+
+function configurarAlertas(sheet, lancSheet) {
+  sheet.clear();
+  sheet.getRange("A1").setValue("ALERTAS E NOTIFICAÇÕES")
+    .setFontSize(18)
+    .setFontWeight("bold")
+    .setFontColor("#CC0000");
+  sheet.getRange("A1:D1").merge();
+  
+  const headers = [
+    ["ALERTA", "DESCRIÇÃO", "STATUS", "DATA"]
+  ];
+  
+  sheet.getRange("A3:D3").setValues(headers)
+    .setBackground("#CC0000")
+    .setFontColor("#FFFFFF")
+    .setFontWeight("bold");
+  
+  const alertas = [
+    ["⚠️ DIVERSIFICAÇÃO", "Mais de 40% em uma única categoria", "PENDENTE", new Date()],
+    ["📅 VENCIMENTO", "Tesouro Direto vence em 30 dias", "AGENDADO", new Date()],
+    ["💰 METAS", "Reserva de emergência próxima de 80%", "EM ANDAMENTO", new Date()]
+  ];
+  
+  sheet.getRange("A4:D6").setValues(alertas);
+  sheet.getRange("D4:D6").setNumberFormat("dd/mm/yyyy");
+}
+
+function aplicarFormatacaoFinal(ss) {
+  const sheets = ss.getSheets();
+  sheets.forEach(sheet => {
+    sheet.autoResizeColumns(1, sheet.getMaxColumns());
+    const range = sheet.getDataRange();
+    range.setVerticalAlignment("middle");
+  });
+}
+
+function criarRelatorioConclusao(ss) {
+  const configSheet = ss.getSheetByName("⚙️ CONFIG");
+  configSheet.clear();
+  configSheet.getRange("A1").setValue("CONFIGURAÇÃO DO SISTEMA")
+    .setFontSize(18)
+    .setFontWeight("bold")
+    .setFontColor("#666666");
+  configSheet.getRange("A1:C1").merge();
+  
+  const configInfo = [
+    ["SISTEMA:", "Gestão de Investimentos Premium v2.0"],
+    ["DATA DE CRIAÇÃO:", Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")],
+    ["VERSÃO:", "2.0.0"],
+    ["ABAS CRIADAS:", "8"],
+    ["CONFIGURAÇÃO:", "Pronta para uso imediato"]
+  ];
+  
+  for (let i = 0; i < configInfo.length; i++) {
+    configSheet.getRange(i + 3, 1).setValue(configInfo[i][0]).setFontWeight("bold");
+    configSheet.getRange(i + 3, 2).setValue(configInfo[i][1]);
+  }
+  
+  configSheet.setColumnWidths(1, 2, [180, 300]);
+}
+
+function mostrarMensagemSucesso(ui) {
+  const htmlOutput = HtmlService
+    .createHtmlOutput(`
+      <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h2 style="color: #1c4587;">✅ SISTEMA CRIADO COM SUCESSO!</h2>
+        <p style="color: #333; line-height: 1.6;">
+          Sua planilha de investimentos premium está pronta para uso!<br><br>
+          <strong>Recursos incluídos:</strong><br>
+          • 📈 Dashboard interativo com KPIs<br>
+          • 💰 Controle completo de lançamentos<br>
+          • 🎯 Acompanhamento de metas<br>
+          • 📊 Análises detalhadas<br>
+          • 💼 Carteira consolidada<br><br>
+          <em>Sistema desenvolvido para profissionais de investimento</em>
+        </p>
+      </div>
+    `)
+    .setWidth(500)
+    .setHeight(350);
+  
+  ui.showModalDialog(htmlOutput, 'Sistema Criado com Sucesso');
+}
+
+function resetarSistema() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    'Resetar Sistema',
+    'Tem certeza que deseja resetar todo o sistema?',
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (response === ui.Button.YES) {
+    criarPlanilhaInvestimentoPremium();
+  }
+}
+
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('💰 SISTEMA PREMIUM')
+    .addItem('📊 Gerar Dashboard', 'criarPlanilhaInvestimentoPremium')
+    .addSeparator()
+    .addItem('🔄 Resetar Sistema', 'resetarSistema')
+    .addToUi();
+}
